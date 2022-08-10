@@ -42,6 +42,7 @@
 //#include "mathops.h"
 #include "celt_lpc.h"
 #include "math.h"
+#include <malloc.h>
 
 static void find_best_pitch(opus_val32 *xcorr, opus_val16 *y, int len,
                             int max_pitch, int *best_pitch
@@ -297,9 +298,9 @@ void pitch_search(const opus_val16 *x_lp, opus_val16 *y,
    celt_assert(max_pitch>0);
    lag = len+max_pitch;
 
-   opus_val16 x_lp4[len>>2];
-   opus_val16 y_lp4[lag>>2];
-   opus_val32 xcorr[max_pitch>>1];
+   opus_val16 * x_lp4 = alloca((len >> 2) * sizeof(opus_val16));
+   opus_val16 * y_lp4 = alloca((lag >> 2) * sizeof(opus_val16));
+   opus_val32 * xcorr = alloca((max_pitch >> 1) * sizeof(opus_val32));
 
    /* Downsample by 2 again */
    for (j=0;j<len>>2;j++)
@@ -443,7 +444,7 @@ opus_val16 remove_doubling(opus_val16 *x, int maxperiod, int minperiod,
       *T0_=maxperiod-1;
 
    T = T0 = *T0_;
-   opus_val32 yy_lookup[maxperiod+1];
+   opus_val32* yy_lookup = alloca((maxperiod + 1) * sizeof(opus_val32));
    dual_inner_prod(x, x, x-T0, N, &xx, &xy);
    yy_lookup[0] = xx;
    yy=xx;
@@ -490,10 +491,10 @@ opus_val16 remove_doubling(opus_val16 *x, int maxperiod, int minperiod,
       thresh = MAX16(QCONST16(.3f,15), MULT16_16_Q15(QCONST16(.7f,15),g0)-cont);
       /* Bias against very high pitch (very short period) to avoid false-positives
          due to short-term correlation */
-      if (T1<3*minperiod)
-         thresh = MAX16(QCONST16(.4f,15), MULT16_16_Q15(QCONST16(.85f,15),g0)-cont);
-      else if (T1<2*minperiod)
+      if (T1<2*minperiod)
          thresh = MAX16(QCONST16(.5f,15), MULT16_16_Q15(QCONST16(.9f,15),g0)-cont);
+      else if (T1<3*minperiod)
+         thresh = MAX16(QCONST16(.4f,15), MULT16_16_Q15(QCONST16(.85f,15),g0)-cont);
       if (g1 > thresh)
       {
          best_xy = xy;

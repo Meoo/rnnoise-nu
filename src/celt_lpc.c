@@ -33,6 +33,7 @@
 #include "arch.h"
 #include "common.h"
 #include "pitch.h"
+#include <malloc.h>
 
 void _celt_lpc(
       opus_val16       *_lpc, /* out: [0...p-1] LPC coefficients      */
@@ -96,14 +97,14 @@ void celt_fir(
          int ord)
 {
    int i,j;
-   opus_val16 rnum[ord];
+   opus_val16* rnum = alloca(ord * sizeof(opus_val16));
    for(i=0;i<ord;i++)
       rnum[i] = num[ord-i-1];
    for (i=0;i<N-3;i+=4)
    {
       opus_val32 sum[4];
       sum[0] = SHL32(EXTEND32(x[i  ]), SIG_SHIFT);
-      sum[1] = SHL32(EXTEND32(x[i+1]), SIG_SHIFT),
+      sum[1] = SHL32(EXTEND32(x[i+1]), SIG_SHIFT);
       sum[2] = SHL32(EXTEND32(x[i+2]), SIG_SHIFT);
       sum[3] = SHL32(EXTEND32(x[i+3]), SIG_SHIFT);
       xcorr_kernel(rnum, x+i-ord, sum, ord);
@@ -147,8 +148,8 @@ void celt_iir(const opus_val32 *_x,
 #else
    int i,j;
    celt_assert((ord&3)==0);
-   opus_val16 rden[ord];
-   opus_val16 y[N+ord];
+   opus_val16 * rden = alloca(ord * sizeof(opus_val16));
+   opus_val16 * y = alloca((N + ord) * sizeof(opus_val16));
    for(i=0;i<ord;i++)
       rden[i] = den[ord-i-1];
    for(i=0;i<ord;i++)
@@ -208,7 +209,7 @@ int _celt_autocorr(
    int fastN=n-lag;
    int shift;
    const opus_val16 *xptr;
-   opus_val16 xx[n];
+   opus_val16* xx = alloca(n * sizeof(opus_val16));
    celt_assert(n>0);
    celt_assert(overlap>=0);
    if (overlap == 0)
